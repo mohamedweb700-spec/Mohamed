@@ -66,29 +66,9 @@ function AppContent() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-bg p-4">
-        <Card className="max-w-md w-full border-none shadow-2xl p-8 space-y-8 bg-white rounded-3xl">
-          <div className="text-center space-y-4">
-            <div className="bg-emerald-100 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 transform rotate-6">
-              <Calendar className="w-10 h-10 text-emerald-600" />
-            </div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">مُنظّم</h1>
-            <p className="text-slate-500 text-lg">رفيقك الذكي لتنظيم يومك وتحقيق أهدافك</p>
-          </div>
-          <Button 
-            onClick={signIn} 
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-14 rounded-2xl gap-3 text-lg transition-all active:scale-95"
-          >
-            <LogIn className="w-6 h-6" />
-            ابدأ الآن مع جوجل
-          </Button>
-          <p className="text-center text-xs text-slate-400">بتسجيل الدخول أنت توافق على شروط الاستخدام</p>
-        </Card>
-      </div>
-    );
-  }
+  // Login gate removed - app opens directly
+  const displayName = user?.displayName || 'مُستخدم';
+  const photoURL = user?.photoURL || '';
 
   return (
     <div className="min-h-screen pb-24 md:pb-8 flex flex-col md:flex-row bg-[#f8fafc]">
@@ -118,13 +98,26 @@ function AppContent() {
 
         <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={user.photoURL || ''} alt="" className="w-10 h-10 rounded-full border-2 border-emerald-100" />
+            <div className="w-10 h-10 rounded-full border-2 border-emerald-100 bg-slate-100 overflow-hidden flex items-center justify-center">
+              {photoURL ? (
+                <img src={photoURL} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-emerald-600 font-bold">G</span>
+              )}
+            </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-800">{user.displayName}</span>
-              <button onClick={logout} className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1 transition-colors">
-                <LogOut className="w-3 h-3" />
-                تسجيل الخروج
-              </button>
+              <span className="text-sm font-bold text-slate-800">{displayName}</span>
+              {user ? (
+                <button onClick={logout} className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1 transition-colors">
+                  <LogOut className="w-3 h-3" />
+                  تسجيل الخروج
+                </button>
+              ) : (
+                <button onClick={signIn} className="text-xs text-emerald-500 hover:text-emerald-700 flex items-center gap-1 transition-colors">
+                  <LogIn className="w-3 h-3" />
+                  تسجيل الدخول
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -135,7 +128,7 @@ function AppContent() {
         <header className="mb-10 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black text-slate-900 mb-2">
-              {new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير'}، {user.displayName?.split(' ')[0]} 👋
+              {new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير'}، {displayName.split(' ')[0]} 👋
             </h2>
             <div className="flex items-center gap-2 text-slate-400 font-medium">
               <Calendar className="w-4 h-4" />
@@ -143,9 +136,15 @@ function AppContent() {
             </div>
           </div>
           <div className="md:hidden">
-            <Button size="icon" variant="outline" className="rounded-full" onClick={logout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
+            {user ? (
+              <Button size="icon" variant="outline" className="rounded-full" onClick={logout}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button size="icon" variant="outline" className="rounded-full" onClick={signIn}>
+                <LogIn className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </header>
 

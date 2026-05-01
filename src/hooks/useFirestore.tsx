@@ -39,11 +39,13 @@ export function useFirestore() {
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
+  // Use guest ID from localStorage if not logged in
+  const guestId = typeof window !== 'undefined' ? localStorage.getItem('guest_id') || 'guest_default' : 'guest_default';
+  const effectiveUserId = user?.uid || guestId;
 
+  useEffect(() => {
     const tasksQuery = query(
-      collection(db, `users/${user.uid}/tasks`),
+      collection(db, `users/${effectiveUserId}/tasks`),
       orderBy('createdAt', 'desc')
     );
 
@@ -56,7 +58,7 @@ export function useFirestore() {
     });
 
     const reflectionsQuery = query(
-      collection(db, `users/${user.uid}/reflections`),
+      collection(db, `users/${effectiveUserId}/reflections`),
       orderBy('date', 'desc')
     );
 
@@ -73,23 +75,21 @@ export function useFirestore() {
       unsubscribeTasks();
       unsubscribeReflections();
     };
-  }, [user]);
+  }, [effectiveUserId]);
 
   const addTask = async (title: string, priority: 'low' | 'medium' | 'high' = 'medium', dueDate?: string) => {
-    if (!user) return;
-    await addDoc(collection(db, `users/${user.uid}/tasks`), {
+    await addDoc(collection(db, `users/${effectiveUserId}/tasks`), {
       title,
       completed: false,
       priority,
       dueDate: dueDate || null,
-      userId: user.uid,
+      userId: effectiveUserId,
       createdAt: serverTimestamp(),
     });
   };
 
   const toggleTask = async (taskId: string, currentStatus: boolean) => {
-    if (!user) return;
-    const taskRef = doc(db, `users/${user.uid}/tasks`, taskId);
+    const taskRef = doc(db, `users/${effectiveUserId}/tasks`, taskId);
     await updateDoc(taskRef, {
       completed: !currentStatus,
       updatedAt: serverTimestamp(),
@@ -97,17 +97,15 @@ export function useFirestore() {
   };
 
   const deleteTask = async (taskId: string) => {
-    if (!user) return;
-    const taskRef = doc(db, `users/${user.uid}/tasks`, taskId);
+    const taskRef = doc(db, `users/${effectiveUserId}/tasks`, taskId);
     await deleteDoc(taskRef);
   };
 
   const addReflection = async (content: string, date: string) => {
-    if (!user) return;
-    await addDoc(collection(db, `users/${user.uid}/reflections`), {
+    await addDoc(collection(db, `users/${effectiveUserId}/reflections`), {
       content,
       date,
-      userId: user.uid,
+      userId: effectiveUserId,
       createdAt: serverTimestamp(),
     });
   };

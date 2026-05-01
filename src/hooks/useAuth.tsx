@@ -22,6 +22,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for guest ID first
+    if (!localStorage.getItem('guest_id')) {
+      const guestId = 'guest_' + Math.random().toString(36).substring(2, 11);
+      localStorage.setItem('guest_id', guestId);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Sync user to Firestore

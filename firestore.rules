@@ -12,7 +12,7 @@ service cloud.firestore {
     }
 
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return (isSignedIn() && request.auth.uid == userId) || userId.startsWith('guest_');
     }
 
     function isValidId(id) {
@@ -26,19 +26,19 @@ service cloud.firestore {
              data.email.size() <= 256;
     }
 
-    function isValidTask(data) {
+    function isValidTask(data, userId) {
       return data.keys().hasAll(['title', 'completed', 'userId', 'createdAt']) &&
              data.title is string && data.title.size() <= 256 &&
              data.completed is bool &&
-             data.userId == request.auth.uid &&
+             data.userId == userId &&
              data.priority in ['low', 'medium', 'high'];
     }
 
-    function isValidReflection(data) {
+    function isValidReflection(data, userId) {
       return data.keys().hasAll(['content', 'date', 'userId', 'createdAt']) &&
              data.content is string && data.content.size() <= 5000 &&
              data.date is string &&
-             data.userId == request.auth.uid;
+             data.userId == userId;
     }
 
     // 1. Users Collection
@@ -53,8 +53,8 @@ service cloud.firestore {
     match /users/{userId}/tasks/{taskId} {
       allow list: if isOwner(userId);
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidTask(request.resource.data);
-      allow update: if isOwner(userId) && isValidTask(request.resource.data) &&
+      allow create: if isOwner(userId) && isValidTask(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidTask(request.resource.data, userId) &&
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'completed', 'priority', 'dueDate', 'updatedAt']);
       allow delete: if isOwner(userId);
     }
@@ -63,8 +63,8 @@ service cloud.firestore {
     match /users/{userId}/reflections/{reflectionId} {
       allow list: if isOwner(userId);
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidReflection(request.resource.data);
-      allow update: if isOwner(userId) && isValidReflection(request.resource.data) &&
+      allow create: if isOwner(userId) && isValidReflection(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidReflection(request.resource.data, userId) &&
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'updatedAt']);
       allow delete: if isOwner(userId);
     }
