@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Entity validation helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+             data.email is string &&
+             data.email.size() <= 256;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['title', 'completed', 'userId', 'createdAt']) &&
+             data.title is string && data.title.size() <= 256 &&
+             data.completed is bool &&
+             data.userId == request.auth.uid &&
+             data.priority in ['low', 'medium', 'high'];
+    }
+
+    function isValidReflection(data) {
+      return data.keys().hasAll(['content', 'date', 'userId', 'createdAt']) &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.date is string &&
+             data.userId == request.auth.uid;
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'theme', 'updatedAt']);
+    }
+
+    // 2. Tasks Collection
+    match /users/{userId}/tasks/{taskId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidTask(request.resource.data);
+      allow update: if isOwner(userId) && isValidTask(request.resource.data) &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'completed', 'priority', 'dueDate', 'updatedAt']);
+      allow delete: if isOwner(userId);
+    }
+
+    // 3. Reflections Collection
+    match /users/{userId}/reflections/{reflectionId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidReflection(request.resource.data);
+      allow update: if isOwner(userId) && isValidReflection(request.resource.data) &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'updatedAt']);
+      allow delete: if isOwner(userId);
+    }
+  }
+}
